@@ -41,73 +41,63 @@ class MyLogger:
 
 # yt-dlp functions
 def get_formats_core(url, logger_instance):
-    """Core logic for fetching formats."""
+    """Core logic for fetching formats, matching Colab's filtering logic."""
     ydl_opts = {
-        'listformats': True,
+        'quiet': True,
+        'skip_download': True,
         'logger': logger_instance,
-        'noplaylist': True, # Ensure we only get info for a single video
+        'noplaylist': True,
     }
-    formats_list = [] # Store {'label': '...', 'id': '...'}
+    formats_list = []
     video_info = {}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info_dict = ydl.extract_info(url, download=False)
             video_info['title'] = info_dict.get('title', 'video')
-            video_info['duration'] = info_dict.get('duration_string', 'N/A') # Example of more info
+            video_info['duration'] = info_dict.get('duration_string', 'N/A')
 
-            for f in info_dict.get('formats', []):
-                # Create a more descriptive label
-                label = f"{f.get('format_id')} - {f.get('ext')} - {f.get('resolution') or f.get('format_note', '')}"
-                if f.get('fps'):
-                    label += f" @ {f.get('fps')}fps"
-                if f.get('filesize_approx'):
-                    label += f" (~{f.get('filesize_approx') / (1024*1024):.2f}MB)"
-                elif f.get('filesize'):
-                    label += f" ({f.get('filesize') / (1024*1024):.2f}MB)"
+            seen_res = set()
+            for f in sorted(info_dict.get('formats', []), key=lambda x: x.get('height') or 0, reverse=True):
+                height = f.get('height')
+                if f.get('vcodec') != 'none' and height and height not in seen_res:
+                    label = f"{height}p - {f.get('ext')}"
+                    formats_list.append({'label': label, 'id': f.get('format_id'), 'ext': f.get('ext')})
+                    seen_res.add(height)
+                if len(formats_list) >= 10:
+                    break
 
-                # Filter out audio-only or video-only if not desired, or list them explicitly
-                # For now, listing most things, but could be more selective
-                if f.get('vcodec') != 'none' and f.get('acodec') != 'none': # Video with Audio
-                     formats_list.append({'label': label, 'id': f.get('format_id'), 'ext': f.get('ext')})
-                elif f.get('vcodec') != 'none' and f.get('acodec') == 'none': # Video only
-                     formats_list.append({'label': f"[Video Only] {label}", 'id': f.get('format_id'), 'ext': f.get('ext')})
-                elif f.get('vcodec') == 'none' and f.get('acodec') != 'none': # Audio only
-                     formats_list.append({'label': f"[Audio Only] {label}", 'id': f.get('format_id'), 'ext': f.get('ext')})
-
-            return formats_list, video_info, None # formats, info, error
+            return formats_list, video_info, None
         except yt_dlp.utils.DownloadError as e:
             return [], {"title": "Error"}, str(e)
         except Exception as e:
             return [], {"title": "Error"}, f"An unexpected error occurred: {e}"
 
 def download_video_core(url, selected_format_id, video_title, download_path, logger_instance, progress_hook_gui=None):
-    """Core logic for downloading video."""
+    """Core logic for downloading video, matching Colab's download behavior."""
     os.makedirs(download_path, exist_ok=True)
 
-    # Sanitize video_title for filename
     sanitized_title = "".join(c if c.isalnum() or c in (' ', '-', '_', '[', ']') else '_' for c in video_title)
-    sanitized_title = "_".join(sanitized_title.split()) # Replace multiple spaces/etc with single underscore
+    sanitized_title = "_".join(sanitized_title.split())
 
     output_template = os.path.join(download_path, f"{sanitized_title}.%(ext)s")
 
     ydl_opts = {
-        'format': selected_format_id,
+        'format': f"{selected_format_id}+bestaudio",
+        'outtmpl': output_template,
+        'writesubtitles': True,
+        'writeautomaticsub': True,
+        'subtitleslangs': ['en'],
+        'merge_output_format': 'mp4',
+        'quiet': True,
+        'no_warnings': True,
+        'noplaylist': True,
         'logger': logger_instance,
         'progress_hooks': [progress_hook_gui] if progress_hook_gui else [],
-        'outtmpl': output_template,
-        'merge_output_format': 'mp4', # Prefer mp4 if merging is needed
-        'noplaylist': True,
-        # Add options for better subtitle handling if desired later
-        # 'writesubtitles': True,
-        # 'subtitleslangs': ['en'], # example
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-        # The final filename is determined by yt-dlp, which might differ from `output_template` due to sanitization or if ext was generic.
-        # A robust way is to find the newest file in `download_path` matching `sanitized_title`.
-        # For now, we'll just confirm completion.
         return f"Download of '{sanitized_title}' complete. Saved in '{download_path}'", None
     except yt_dlp.utils.DownloadError as e:
         return None, str(e)
