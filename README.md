@@ -11,7 +11,8 @@ A simple desktop application to download YouTube videos with a graphical user in
 *   Downloads video, best audio, and English subtitles (if available).
 *   Merges video and audio into an MP4 file.
 *   Displays download progress.
-##Alternatives:
+  
+## Alternatives:
 You can use the Google Colab notebook version if YouTube is blocked in your country but Google services are still accessible
 # Prerequisites
 
