@@ -15,14 +15,13 @@ A simple desktop application to download YouTube videos with a graphical user in
 ## Prerequisites
 
 *   Python 3.x
-*   FFmpeg: `yt-dlp` requires FFmpeg for merging formats. Please download it from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html) and ensure it's added to your system's PATH or is in the same directory as the application.
 
 ## How to Run
 
 1.  **Clone the repository (or download the files):**
     ```bash
     git clone https://github.com/kiarashfallah/youtube-downloader.git
-    cd youtube-downloader-gui
+    cd youtube-downloader
     ```
 2.  **Create a virtual environment (recommended):**
     ```bash
