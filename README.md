@@ -21,8 +21,8 @@ A simple desktop application to download YouTube videos with a graphical user in
 
 1.  **Clone the repository (or download the files):**
     ```bash
-    git clone <repository_url>
-    cd <repository_directory>
+    git clone https://github.com/kiarashfallah/youtube-downloader.git
+    cd youtube-downloader-gui
     ```
 2.  **Create a virtual environment (recommended):**
     ```bash
